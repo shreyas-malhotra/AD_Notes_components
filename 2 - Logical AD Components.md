@@ -39,7 +39,7 @@
 		corp.local
 		├── sales.corp.local
 		└── it.corp.local
-		- If there are two domains that don't share the same namespace, they belong to different domain trees, for example, shreyas.tech and corp.local don't belong in the same domain tree, and may belong to different trees in a forest.
+- If there are two domains that don't share the same namespace, they belong to different domain trees, for example, shreyas.tech and corp.local don't belong in the same domain tree, and may belong to different trees in a forest.
 
 ### Forest
 - A forest is a collection of one or more domain trees
