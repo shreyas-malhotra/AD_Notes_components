@@ -1,0 +1,5 @@
+- We are assuming here that we are performing an internal penetration test and have VPN access to the organization's environment, this classifies an assumed breach environment.
+- Network Configuration:
+	- DC-HYDRA: 10.0.2.15
+	- SPIDERMAN: 10.0.2.16
+	- THEPUNISHER: 10.0.2.17

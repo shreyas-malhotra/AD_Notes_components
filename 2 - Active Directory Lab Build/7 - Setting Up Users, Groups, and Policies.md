@@ -1,0 +1,101 @@
+- We will now modify the DC configuration.
+- We're now going to add users, and configure our OUs and objects. We are also going to be building out some domain policies that we can apply to our domain.
+
+### Creating the required users
+- We can now just turn off the user machines, and turn on our DC.
+- Server manager should start up on boot, within server manager, we need to go to "Tools>Active Directory Users and Computers".
+- The "Active Directory Users and Computers" window that pops up stores all of our users and computers, and if we click on the entry for our Domain, we can see the OUs under it show up, these Computers and Users OU show the Computers and Users connected to our Domain.
+- The Users OU also shows groups like "Domain Admins", and "Enterprise Admins".
+- We will create a new OU for User Groups by right-clicking our Domain name and selecting "New>Organizational Unit".
+- In the window that pops up, we can name our new OU "Groups".
+- Next, we will select all the user groups present under the "Users" OU and drag them to the "Groups" OU, we can confirm on any warning prompt that pops up, and select "Don't show this warning while this snap-in is open".
+- The users left in the "Users" OU should now just be "Administrator" and "Guest".
+- The little logo beside the "Guest" account means that it is currently in a disabled state.
+- If we want to check the details of the "Administrator" user, we can double-click on it and check the general information under the "General" tab, and the AD Groups its a member of by selecting the "Member Of" tab, under which we can see that our current "Administrator" user is a member of the following AD Groups.
+	- Administrators
+	- Domain Admins
+	- Domain Users
+	- Enterprise Admins
+	- Group Policy Creator Owners
+	- Schema Admin
+- If we want to create a new Administrative account, to do so, we can just right-click the "Administrator" user, and select "Copy", this will copy all the permissions of the "Administrator" user, and open a "Copy Object - User" window .
+- In the window that pops up, we can define information about the new user that we want to copy the "Administrator" user's permissions to, we can specify the following information, and click finish:
+	  - First name: Tony
+	  - Last name: Stark
+	  - Logon name: tstark
+	  - Password: Password12345!
+- We also now had the option to designate the naming convention for the user logon name, we will specify it here as "tstark", which implies the `(first initial)(last name)` naming convention.
+- Setting the password to never expire is something we do here, but its a significant security issue.
+- The "Tony Stark" user should now be visible under the "Users" OU.
+- We will copy the user one more time, to create a new user with a service account for a fictitious SQL Server, we are also making it a Domain Admin by using the "Administrator" user's set of permissions, this is another significant security issue.
+- We will fill in the following details:
+	- First name: SQL
+	- Last name: Service
+	- Login name: SQLService
+	- Password: MYpassword123#
+- We also will double-click the SQLService account and add the following to its description, "MYpassword123#".
+- Many Domain Admins store critical information in the object descriptions, thinking only they can see that, but this is not true, any valid domain users can see the description of an object.
+- Next we will create some more users, to do so, we can right click on the white space in the window showing the data about the objects under the "Users" OU, and select the "New>User" option.
+- For the new low-priv user, for our "THEPUNISHER" user machine, we can use the following details:
+	- First name: Frank
+	- Last name: Castle
+	- Login name: fcastle
+	- Password: Password1
+	- Password policies: Password never expires, not required to change password at the next login
+- We'll copy the "Frank Castle" user to set up the "Peter Parker" user with the same permissions, and fill in the following details:
+	- First name: Peter
+	- Last name: Parker
+	- Login name: pparker
+	- Password: Password2
+	- Password policies: Password never expires, not required to change password at the next login
+- Once everything here is setup, we can close everything else and go back to the server manager main page.
+### Setting up a file share
+- Once we are at the server manager main page, we can go to the "File and Storage Services" option in the menu bar on the left, and select "Shares".
+- On the upper right, we may find a "TASKS" button, we will press it and select "New Share".
+- In the wizard that opens, we need to select "SMB Share - Quick", and click next.
+- We will go with the default share location here, and click next.
+- For the share name, we will provide the value "hackme".
+- On the "Configure share settings" page, we'll make sure that the "Allow caching of share" option is selected and click next.
+- On the "Specify permission to control access" page, we'll just go with the defaults and click next, and on the next page, we will select "Create".
+- Once the share is created, we can close the wizard.
+
+### Configuring the SQLService account we created, and discussing SPN (Service Principle Name)
+- Open the Command Prompt as Administrator.
+- `setspn -a HYDRA-DC/SQLService.MARVEL.local:60111 MARVEL\SQLService`
+	- The above command should print an "Updated object" message on successful execution.
+- `cls`
+- `setspn -T MARVEL.local -Q */*`
+	- The above command should print an "Existing SPN found!" message on successful execution.
+	- SPN stands for "Service Principle Name"
+	- We will discuss more about SPNs when we get to the Kerberoasting attacks.
+	- Currently we will just consider this as the setup process of a SQL service account.
+
+### Setting up a "Disable Windows Defender" Group Policy for the entire domain
+- Open the "Group Policy Management" application.
+- We will be able to see the forest "Forest:MARVEL.local" on the left navigation menu, under which we will be able to see the domain "MARVEL.local".
+- Under the domain, we can see a Default Domain Policy, but we will add a new policy to it:
+	- Right-click on the MARVEL.local domain, and select the "Create a GPO in this domain, and Link it here" option.
+	- GPOs can be created for specific groups and users, but here we are creating one for the whole domain.
+	- In the "New GPO" window that pops up, we can name the GPO "Disable Windows Defender", and click Ok.
+	- We want to use this policy to disable Windows Defender in our environment. This is so that we are able to perform attacks on the target environment without worrying about AV evasion at this point.
+	- On the "Disable Windows Defender" GPO that shows up on the left navigation menu, we can now right-click and select the "Edit" option.
+	- A new window titled "Group Policy Management Editor" should now pop up.
+	- Under "Computer Configuration" on the left navigation menu, we can select "Policies>Administrative Templates>Windows Components>Microsoft Defender Antivirus".
+	- Once we have the options under "Microsoft Defender Antivirus" on the main section, we can double click the "Turn off Microsoft Defender Antivirus" option.
+	- We should configure this option to be enabled, and then click apply, and ok.
+	- We can now close the "Group Policy Management Editor" window, and go back to the "Group Policy Management" application, and right-click on our "Disable Windows Defender" Group Policy and check the "Enforced" option, and verify it with the Domain menu open, and under "Linked Group Policy Objects".
+
+### Ensuring the DC has a Static IP address allocation
+- Open Command Prompt.
+- `ipconfig`
+- Note down the allocated IP address.
+- Open Network & Internet settings.
+- Select "Change adaptor options".
+- Select the network adaptor, and in the window that opens up, go to "Properties>Internet Protocol Version 4 (TCP/IPv4)".
+- In the "Internet Protocol Version 4 (TCP/IPv4) Properties" window that opens up, select the "Use the following IP address" radio button, and enter the following values:
+	- IP address: 10.0.2.15
+	- Subnet mask: 255.255.255.0
+	- Default gateway: 10.0.2.2
+	- Change these values according to the IP address allocation you already have on your system, visible when we used the `ipconfig` command.
+- Hit okay on the Network Adaptor properties.
+- Shut down the DC.

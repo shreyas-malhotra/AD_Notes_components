@@ -1,0 +1,70 @@
+### Resource Configuration
+- Now we can configure our VM's system configuration according to the amount of RAM we have, we can set the RAM for the DC as low as 2 GB, and the amount of RAM for SPIDERMAN as low as 2 GB, for Punisher we may need at least 4 GB of RAM.
+- My configuration of the VMs were to allocate 4 GB of RAM to each machine, which amounts to 12GB of RAM being used, I have 24GB of RAM in my system, so that should meet the minimum requirement spec, and work without a hitch.
+
+### Static IP and DNS configuration
+- Now we need to power on each VM we have created, and log in to them.
+- First of all, we will allocate static IP addresses in our network to the user machines as well, we have already done that for the DC.
+	- HYDRA-DC: 10.0.2.15
+	- SPIDERMAN: 10.0.2.16
+	- THEPUNISHER: 10.0.2.17
+- Along with the static IP configuration, we also want to use the DC as the DNS for the user machines, which can be done along with, by just using the DC's IP address as the user machine's DNS server.
+
+### Joining the Domain (Should be done the same way on both user machines)
+- Joining the Domain, should be done the same way on both machines, before going on forward:
+	- We need to search for "Domain" on the user machines, and the "Access work or school" option should come up.
+	- Here, we need to click "connect".
+	- When it gives us the option to sign up using a Microsoft Account, we will instead opt to "Join this device to a local Active Directory Domain instead".
+	- When prompted, we can provide the Domain Name, "MARVEL.local", and when prompted for credentials, we first need to provide the Domain Administrator credentials, we also need to provide the "Administrator" username, and select Administrator account and finalize before it provides us with a reboot prompt, where we will choose to reboot now.
+	- We now need to login to our DC and verify on our AD that the user machines have joined the AD Domain.
+	- We can verify this by going to "Tools>Active Directory Users & Computers", and checking the Computers present under the domain.
+	- Now, let's get to our user machines, and login to our domain as the Administrator.
+- We now need to setup some local Administrators for the user machines, and a share drive for the SPIDERMAN machine, that is going to come into play later.
+- Setting up THEPUNISHER:
+	- Login on THEPUNISHER using the MARVEL/Administrator account, search for users in the search bar, and open the "Edit local users and groups" system setting.
+	- Go to "Users", and set a password for the currently disabled Local Administrator account, by opening the options menu, and selecting "Set password", selecting "Proceed" on the pop-up, and entering the password "Password1!".
+	- Next we will enable this Administrator account, by opening its user properties and de-selecting the "Account is disabled" checkbox, and clicking "Apply".
+	- In a best practise scenario, we want Local Administrators on Computers connected to a Domain be disabled, but it is quite observable to have them enabled in many real-life test environments.
+	- Next, we will go to "Groups", and open the properties for the "Administrators" group to verify that the Administrators group includes the following members:
+		- Administrator
+		- frankcastle
+		- MARVEL\Administrator
+		- MARVEL\Domain Admins
+	- Here we no want to add one more user to this machine, and that is going to be fcastle from the MARVEL domain, to do so:
+		- We'll press the "Add" button below the Members list in the window we have open, i.e. the properties of the "Administrators" group.
+		- In the window that opens up, we will ensure that the location is set to "MARVEL.local", and enter the object name "fcastle", followed by pressing the "Check Names" button, this should bring up the object's information and provide its domain entity "fcastle@MARVEL.local" instead of "fcastle" in the object name section, now, we will click Ok.
+		- "fcastle@MARVEL.local" should show up in the Members list now.
+		- Once all the changes are made, we are going to press "Apply".
+	- Ensuring Network Discovery is enabled:
+		- We can do this by opening File Explorer, and navigating to the "Network" location, a prompt should show up in case Network Discovery is disabled.
+		- To enable it, we just need to click on the message that shows up as a yellow bar on top of File Explorer, and select "Turn on network discovery and file sharing".
+	- The Domain Controller should show up under Network Discovery now, in case it doesn't, we will need to enable Network Discovery on it as well, using the same steps mentioned above.
+	- In the Domain Controller's folder under Network, we should also be able to see the "hackme" file share we had set up earlier.
+- Next we'll set up SPIDERMAN:
+	- Login on SPIDERMAN using the MARVEL/Administrator account, search for users in the search bar, and open the "Edit local users and groups" system setting.
+	- Go to "Users", and set a password for the currently disabled Local Administrator account, by opening the options menu, and selecting "Set password", selecting "Proceed" on the pop-up, and entering the password "Password1!".
+	- It is important that the passwords set for the local Administrators are identical on both the user machines.
+	- Next we will enable this Administrator account, by opening its user properties and de-selecting the "Account is disabled" checkbox, and clicking "Apply".
+	- Next, we will go to "Groups", and open the properties for the "Administrators" group to verify that the Administrators group includes the following members:
+		- Administrator
+		- pparker
+		- MARVEL\Administrator
+		- MARVEL\Domain Admins
+	- Here we no want to add one more user to this machine, and that is going to be pparker from the MARVEL domain, to do so:
+		- We'll press the "Add" button below the Members list in the window we have open, i.e. the properties of the "Administrators" group.
+		- In the window that opens up, we will ensure that the location is set to "MARVEL.local", and enter the object name "pparker", followed by pressing the "Check Names" button, this should bring up the object's information and provide its domain entity "pparker@MARVEL.local" instead of "pparker" in the object name section, now, we will click Ok.
+		- "pparker@MARVEL.local" should show up in the Members list now.
+		- Next, we will also add "fcastle", which is THEPUNISHER's user as an administrator as a domain user on this machine as well, this is to demonstrate an attack later on.
+		- The steps to add an AD user as a member of the Administrators group stays the same, we will repeat them for "fcastle" on SPIDERMAN.
+		- Once all the changes are made, we are going to press "Apply".
+	- Ensuring Network Discovery is enabled:
+		- We can do this by opening File Explorer, and navigating to the "Network" location, a prompt should show up in case Network Discovery is disabled.
+		- To enable it, we just need to click on the message that shows up as a yellow bar on top of File Explorer, and select "Turn on network discovery and file sharing".
+	- The Domain Controller should show up under Network Discovery now.
+	- In the Domain Controller's folder under Network, we should also be able to see the "hackme" file share we had set up earlier.
+	- Sign out as the Administrator user on MARVEL.local that we are currently using, and login as pparker as a Local Administrator, we will need to login using the "Other user" option and specify the login name and password, ".\peterparker" and "Password1", the `.\` specifies that we want to login as a non-domain user.
+	- Mapping a Network Drive:
+		- Open File Explorer, and go to the "This PC" directory, and select the "Computer>Map Network Drive" option.
+		- Select the drive letter "Z:" and folder path `\\HYDRA-DC\hackme`, select "Reconnect at signin", and "Connect using different credentials", and click "Finish".
+		- In the credential prompt, sign in as "Administrator", and password `P@$$w0rd!`.
+		- At this point, we should see a network drive, `hackme (\\HYDRA-DC\hackme) (Z:)` connected to our PC.
